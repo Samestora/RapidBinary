@@ -15,14 +15,18 @@ jobs:
     strategy:
       matrix:
         app: [rbserver, rbhash]
+        platform: [linux, windows, macos]
         include:
-          - os: ubuntu-latest
+          - platform: linux
+            os: ubuntu-latest
             goos: linux
             goarch: amd64
-          - os: windows-latest
+          - platform: windows
+            os: windows-latest
             goos: windows
             goarch: amd64
-          - os: macos-latest
+          - platform: macos
+            os: macos-latest
             goos: darwin
             goarch: arm64
 

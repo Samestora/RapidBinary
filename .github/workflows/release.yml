@@ -10,23 +10,21 @@ permissions:
 
 jobs:
   build:
-    name: Build for ${{ matrix.os }} (${{ matrix.goarch }})
+    name: Build ${{ matrix.app }} for ${{ matrix.os }} (${{ matrix.goarch }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        app: [rbserver, rbhash]
         include:
           - os: ubuntu-latest
             goos: linux
             goarch: amd64
-            archive_name: rbserver_linux_amd64.tar.gz
           - os: windows-latest
             goos: windows
             goarch: amd64
-            archive_name: rbserver_windows_amd64.zip
           - os: macos-latest
             goos: darwin
             goarch: arm64
-            archive_name: rbserver_macos_arm64.tar.gz
 
     steps:
       - name: Checkout code
@@ -45,23 +43,26 @@ jobs:
         shell: bash
         run: |
           # Define binary name based on OS
-          BINARY_NAME="rbserver"
-          if [ "${{ matrix.goos }}" = "windows" ]; then BINARY_NAME="rbserver.exe"; fi
+          BINARY_NAME="${{ matrix.app }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then BINARY_NAME="{{ matrix.app }}.exe"; fi
 
-          go build -ldflags="-s -w" -o "$BINARY_NAME" ./cmd/rbserver
+          go build -ldflags="-s -w" -o "$BINARY_NAME" ./cmd/{{ matrix.app }}
 
-          # Compress based on file extension
-          if [[ "${{ matrix.archive_name }}" == *.zip ]]; then
-            7z a "${{ matrix.archive_name }}" "$BINARY_NAME"
+          ARCHIVE_NAME="${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}"
+
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            7z a "${ARCHIVE_NAME}.zip" "$BINARY_NAME"
+            echo "archive_path=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
           else
-            tar -czvf "${{ matrix.archive_name }}" "$BINARY_NAME"
+            tar -czvf "${ARCHIVE_NAME}.tar.gz" "$BINARY_NAME"
+            echo "archive_path=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
           fi
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.archive_name }}
-          path: ${{ matrix.archive_name }}
+          name: ${{ matrix.app }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ${{ env.archive_path }}
 
   release:
     name: Create GitHub Release

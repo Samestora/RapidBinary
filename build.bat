@@ -2,9 +2,9 @@
 setlocal enabledelayedexpansion
 
 :: Configuration
-set BINARY_NAME=rbserver.exe
 set BUILD_DIR=build
-set MAIN_PATH=./cmd/rbserver
+:: List of apps in cmd folder to iterate through
+set APPS=rbserver rbhash
 
 if "%1"=="" goto help
 if "%1"=="build" goto build
@@ -15,45 +15,60 @@ if "%1"=="clean" goto clean
 echo Usage: build.bat [command]
 echo.
 echo Commands:
-echo   build    Compile for Windows
-echo   release  Cross-compile for Linux and Mac
-echo   clean    Remove the bin directory
+echo   build    Compile all apps for Windows (local)
+echo   release  Cross-compile all apps for Linux, Windows, Mac
+echo   clean    Remove the build directory
 goto :eof
 
 :build
-echo Building %BINARY_NAME%...
+echo Building for Windows...
 if not exist %BUILD_DIR% mkdir %BUILD_DIR%
-go build -o %BUILD_DIR%\%BINARY_NAME% %MAIN_PATH%
-if %ERRORLEVEL% EQU 0 (
-    echo Done! Binary located at: %BUILD_DIR%\%BINARY_NAME%
-) else (
-    echo ❌ Build failed.
+
+for %%A in (%APPS%) do (
+    echo   - Building %%A...
+    :: Builds from the respective cmd subdirectory
+    go build -ldflags="-s -w" -o %BUILD_DIR%\%%A.exe ./cmd/%%A
+    if !ERRORLEVEL! EQU 0 (
+        echo      %%A ready
+    ) else (
+        echo      %%A failed
+    )
 )
 goto :eof
 
 :release
-echo Cross-compiling for all platforms...
+echo Cross-compiling RapidBinary Toolsuite...
 if not exist %BUILD_DIR% mkdir %BUILD_DIR%
 
-echo Building Windows...
+:: Windows Build
 set GOOS=windows
 set GOARCH=amd64
-go build -o %BUILD_DIR%\rbserver_windows_amd64.exe %MAIN_PATH%
+for %%A in (%APPS%) do (
+    echo   - Windows: %%A
+    go build -ldflags="-s -w" -o %BUILD_DIR%/%%A_windows_amd64.exe ./cmd/%%A
+)
 
-echo Building Linux...
+:: Linux Build
 set GOOS=linux
 set GOARCH=amd64
-go build -o %BUILD_DIR%\rbserver_linux_amd64 %MAIN_PATH%
+for %%A in (%APPS%) do (
+    echo   - Linux: %%A
+    go build -ldflags="-s -w" -o %BUILD_DIR%/%%A_linux_amd64 ./cmd/%%A
+)
 
-echo Building MacOS...
+:: MacOS Build (Silicon/ARM)
 set GOOS=darwin
 set GOARCH=arm64
-go build -o %BUILD_DIR%\rbserver_macos_arm64 %MAIN_PATH%
+for %%A in (%APPS%) do (
+    echo   - MacOS: %%A
+    go build -ldflags="-s -w" -o %BUILD_DIR%/%%A_macos_arm64 ./cmd/%%A
+)
 
-:: Reset env vars
+:: Reset environment variables
 set GOOS=
 set GOARCH=
-echo Release binaries ready in %BUILD_DIR%
+echo.
+echo Release binaries ready in /%BUILD_DIR%
 goto :eof
 
 :clean

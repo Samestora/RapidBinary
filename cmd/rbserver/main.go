@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"rapidbinary/internal/server"
+	"rapidbinary/internal/shared"
 )
 
 func main() {
@@ -14,13 +15,16 @@ func main() {
 	useLog := flag.Bool("log", false, "Enable logging")
 
 	flag.Usage = func() {
-		fmt.Println("RapidBinary Tool")
+		shared.PrintHeader()
+		fmt.Println("Usage of RapidBinary:")
 		flag.PrintDefaults()
 	}
 
 	flag.Parse()
 
 	if *mode == "serve" {
+		shared.PrintHeader()
+		fmt.Printf("%sStarting server on port %d...%s\n", shared.Cyan, *port, shared.Reset)
 		server.RunServer(*port, ".", "./uploads", *upload, *useLog)
 	} else {
 		flag.Usage()

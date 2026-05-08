@@ -99,7 +99,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: Release ${{ github.ref_name }}
-          body: ${{ steps.changelog_reader.outputs.changes }}
-          files: ./dist/*
+          body: ${{ steps.changelog_reader.outputs.log_entry }}
+          artifacs: ./dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

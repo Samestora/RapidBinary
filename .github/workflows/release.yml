@@ -10,25 +10,23 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.app }} for ${{ matrix.os }} (${{ matrix.goarch }})
+    name: Build for ${{ matrix.os }} (${{ matrix.goarch }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        app: [rbserver, rbhash]
-        platform: [linux, windows, macos]
         include:
-          - platform: linux
-            os: ubuntu-latest
+          - os: ubuntu-latest
             goos: linux
             goarch: amd64
-          - platform: windows
-            os: windows-latest
+            archive_ext: tar.gz
+          - os: windows-latest
             goos: windows
             goarch: amd64
-          - platform: macos
-            os: macos-latest
+            archive_ext: zip
+          - os: macos-latest
             goos: darwin
             goarch: arm64
+            archive_ext: tar.gz
 
     steps:
       - name: Checkout code
@@ -47,25 +45,31 @@ jobs:
         shell: bash
         run: |
           # Define binary name based on OS
-          BINARY_NAME="${{ matrix.app }}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then BINARY_NAME="${{ matrix.app }}.exe"; fi
+          DIST_NAME="rapidbinary_${{ matrix.goos }}_${{ matrix.goarch }}"
+          mkdir -p "$DIST_NAME"
 
-          go build -ldflags="-s -w" -o "$BINARY_NAME" ./cmd/${{ matrix.app }}
+          for APP in rbserver rbhash; do
+            BINARY_NAME="$APP"
+            if [ "${{ matrix.goos }}" = "windows" ]; then BINARY_NAME="$APP.exe"; fi
 
-          ARCHIVE_NAME="${{ matrix.app }}_${{ matrix.goos }}_${{ matrix.goarch }}"
+            echo "Building $APP..."
+            go build -ldflags="-s -w" -o "$DIST_NAME/$BINARY_NAME" ./cmd/$APP
+          done
 
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            7z a "${ARCHIVE_NAME}.zip" "$BINARY_NAME"
-            echo "archive_path=${ARCHIVE_NAME}.zip" >> $GITHUB_ENV
+          ARCHIVE_FILE="${DIST_NAME}.${{ matrix.archive_ext }}"
+
+          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+            7z a "$ARCHIVE_FILE" "./$DIST_NAME/*"
           else
-            tar -czvf "${ARCHIVE_NAME}.tar.gz" "$BINARY_NAME"
-            echo "archive_path=${ARCHIVE_NAME}.tar.gz" >> $GITHUB_ENV
+            tar -czvf "$ARCHIVE_FILE" -C "$DIST_NAME" .
           fi
+
+          echo "archive_path=$ARCHIVE_FILE" >> $GITHUB_ENV
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.app }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: ${{ matrix.goos }}-${{ matrix.goarch }}
           path: ${{ env.archive_path }}
 
   release:

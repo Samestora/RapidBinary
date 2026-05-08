@@ -96,10 +96,10 @@ jobs:
           path: ./CHANGELOG.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
           name: Release ${{ github.ref_name }}
-          body: ${{ steps.changelog_reader.outputs.log_entry }}
+          body: ${{ steps.changelog_reader.outputs.changes }}
           files: ./dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

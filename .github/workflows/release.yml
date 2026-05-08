@@ -44,7 +44,7 @@ jobs:
         run: |
           # Define binary name based on OS
           BINARY_NAME="${{ matrix.app }}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then BINARY_NAME="{{ matrix.app }}.exe"; fi
+          if [ "${{ matrix.goos }}" = "windows" ]; then BINARY_NAME="${{ matrix.app }}.exe"; fi
 
           go build -ldflags="-s -w" -o "$BINARY_NAME" ./cmd/${{ matrix.app }}
 
